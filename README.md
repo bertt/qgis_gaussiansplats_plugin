@@ -77,13 +77,7 @@ Copy this entire folder to your QGIS plugins directory:
 
 ## Example URLs
 
-The plugin includes several example URLs for testing:
-
-- `https://antimatter15.com/splat/train.splat` - Train scene
-- `https://antimatter15.com/splat/plush.splat` - Plush toy
-- `https://antimatter15.com/splat/truck.splat` - Truck
-- `https://antimatter15.com/splat/garden.splat` - Garden scene
-- `https://antimatter15.com/splat/bicycle.splat` - Bicycle
+Todo 
 
 ## Testing the Plugin
 
