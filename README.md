@@ -23,18 +23,18 @@ A QGIS plugin for loading and visualizing 3D Gaussian Splats from URL, similar t
 **Windows (Run as Administrator):**
 
 ```cmd
-mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" "c:\dev\github.com\bertt\qgis_gaussiansplats"
+mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" "c:\path\to\qgis_gaussiansplats_plugin\src"
 ```
 
 **Linux/macOS:**
 
 ```bash
-ln -s /path/to/qgis_gaussiansplats ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats
+ln -s /path/to/qgis_gaussiansplats_plugin/src ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats
 ```
 
 ### Method 2: Copy Files
 
-Copy this entire folder to your QGIS plugins directory:
+Copy the entire 'src' folder to your QGIS plugins directory:
 
 - **Windows:** `%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats`
 - **Linux:** `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats`
