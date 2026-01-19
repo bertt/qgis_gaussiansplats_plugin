@@ -1,0 +1,50 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          # Remove 'v' prefix from tag to get version number
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
+      - name: Update metadata.txt with version
+        run: |
+          VERSION=${{ steps.get_version.outputs.version }}
+          sed -i "s/^version=.*/version=$VERSION/" src/metadata.txt
+          echo "Updated metadata.txt with version $VERSION"
+          cat src/metadata.txt | grep version
+      
+      - name: Create plugin zip
+        run: |
+          cd src
+          zip -r ../gaussiansplats-${{ steps.get_version.outputs.version }}.zip . -x "*.pyc" -x "__pycache__/*" -x "*/__pycache__/*"
+          cd ..
+          echo "Created zip file: gaussiansplats-${{ steps.get_version.outputs.version }}.zip"
+          ls -lh gaussiansplats-${{ steps.get_version.outputs.version }}.zip
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: gaussiansplats-${{ steps.get_version.outputs.version }}.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
