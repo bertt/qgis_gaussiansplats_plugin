@@ -170,6 +170,29 @@ qgis_gaussiansplats/
 └── README.md             # This file
 ```
 
+### Creating a Release
+
+The repository includes a GitHub Action that automatically creates releases when you push a version tag:
+
+1. **Create and push a version tag:**
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+2. **The GitHub Action will automatically:**
+   - Extract the version number from the tag (e.g., `v1.0.0` → `1.0.0`)
+   - Update `metadata.txt` with the version number
+   - Create a zip file named `gaussiansplats-1.0.0.zip` containing all plugin files
+   - Create a GitHub release with the tag
+   - Upload the zip file as a release asset
+
+3. **Users can then install the plugin:**
+   - Download the `gaussiansplats-x.x.x.zip` file from the GitHub release
+   - In QGIS, go to **Plugins** → **Manage and Install Plugins...**
+   - Click **Install from ZIP**
+   - Select the downloaded zip file
+
 ## License
 
 MIT License
