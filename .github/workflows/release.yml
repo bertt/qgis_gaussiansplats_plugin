@@ -33,11 +33,21 @@ jobs:
       
       - name: Create plugin zip
         run: |
-          cd src
-          zip -r ../gaussiansplats-${{ steps.get_version.outputs.version }}.zip . -x "*.pyc" -x "*__pycache__*"
+          # Create temporary directory with proper structure
+          mkdir -p build/gaussiansplats
+          cp -r src/* build/gaussiansplats/
+          
+          # Create zip with gaussiansplats as root folder
+          cd build
+          zip -r ../gaussiansplats-${{ steps.get_version.outputs.version }}.zip gaussiansplats -x "*.pyc" -x "*__pycache__*"
           cd ..
+          
           echo "Created zip file: gaussiansplats-${{ steps.get_version.outputs.version }}.zip"
           ls -lh gaussiansplats-${{ steps.get_version.outputs.version }}.zip
+          
+          # Show zip contents to verify structure
+          echo "Zip contents:"
+          unzip -l gaussiansplats-${{ steps.get_version.outputs.version }}.zip | head -20
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
