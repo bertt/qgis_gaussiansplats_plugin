@@ -14,7 +14,7 @@ QGIS plugins follow PyQGIS conventions and integrate with the QGIS application f
 
 ```bash
 # Create symlink to QGIS plugins directory (Windows)
-mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" "c:\dev\github.com\bertt\qgis_gaussiansplats"
+mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" "c:\dev\github.com\bertt\qgis_gaussiansplats\src"
 
 # Linux/macOS
 ln -s /path/to/qgis_gaussiansplats ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats
@@ -229,7 +229,7 @@ settings.endGroup()
 ### File Structure
 
 ```
-qgis_gaussiansplats/
+qgis_gaussiansplats/src
 ├── __init__.py           # Plugin entry point (classFactory)
 ├── metadata.txt          # Plugin metadata for QGIS
 ├── plugin.py             # Main plugin class
