@@ -18,7 +18,17 @@ A QGIS plugin for loading and visualizing 3D Gaussian Splats from URL, similar t
 
 ## Installation
 
-### Method 1: Symlink (Recommended for Development)
+### Method 1: Install from GitHub Release (Recommended)
+
+1. Go to the [Releases page](https://github.com/bertt/qgis_gaussiansplats_plugin/releases)
+2. Download the latest `gaussiansplats.zip` file
+3. In QGIS, go to **Plugins** → **Manage and Install Plugins...**
+4. Click on **Install from ZIP** tab
+5. Browse to the downloaded `gaussiansplats.zip` file and click **Install Plugin**
+6. The plugin will be automatically enabled after installation
+7. If not enabled, go to the **Installed** tab and check the box next to **Gaussian Splats**
+
+### Method 2: Symlink (Recommended for Development)
 
 **Windows (Run as Administrator):**
 
@@ -32,7 +42,7 @@ mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" 
 ln -s /path/to/qgis_gaussiansplats_plugin/src ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats
 ```
 
-### Method 2: Copy Files
+### Method 3: Copy Files
 
 Copy the entire 'src' folder to your QGIS plugins directory:
 
@@ -40,7 +50,7 @@ Copy the entire 'src' folder to your QGIS plugins directory:
 - **Linux:** `~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats`
 - **macOS:** `~/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats`
 
-### Enable the Plugin
+After installation using Method 2 or 3, you may need to enable the plugin:
 
 1. Open QGIS
 2. Go to **Plugins** → **Manage and Install Plugins...**
@@ -169,6 +179,25 @@ qgis_gaussiansplats/
 ├── AGENTS.md             # AI agent guidelines
 └── README.md             # This file
 ```
+
+### Creating a Release
+
+This project uses GitHub Actions to automatically create releases with installable QGIS plugin zip files.
+
+To create a new release:
+
+1. Create and push a version tag: 
+   ```bash
+   git tag -a vX.Y.Z -m "Release version X.Y.Z"
+   git push origin vX.Y.Z
+   ```
+2. GitHub Actions will automatically:
+   - Update the version in `src/metadata.txt` from the tag
+   - Package the plugin into `gaussiansplats.zip`
+   - Create a GitHub release with the tag
+   - Upload the zip file as a release asset
+
+Users can then download the zip file from the [Releases page](https://github.com/bertt/qgis_gaussiansplats_plugin/releases) and install it directly in QGIS.
 
 ## License
 
