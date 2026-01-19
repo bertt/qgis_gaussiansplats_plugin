@@ -18,7 +18,14 @@ A QGIS plugin for loading and visualizing 3D Gaussian Splats from URL, similar t
 
 ## Installation
 
-### Method 1: Symlink (Recommended for Development)
+### Method 1: Zip file (Recommended)
+
+- Download the `gaussiansplats-x.x.x.zip` file from the GitHub release
+- In QGIS, go to **Plugins** → **Manage and Install Plugins...**
+- Click **Install from ZIP**
+- Select the downloaded zip file
+
+### Method 2: Symlink (Recommended for Development)
 
 **Windows (Run as Administrator):**
 
@@ -32,7 +39,7 @@ mklink /D "%APPDATA%\QGIS\QGIS3\profiles\default\python\plugins\gaussiansplats" 
 ln -s /path/to/qgis_gaussiansplats_plugin/src ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/gaussiansplats
 ```
 
-### Method 2: Copy Files
+### Method 3: Copy Files
 
 Copy the entire 'src' folder to your QGIS plugins directory:
 
@@ -186,12 +193,6 @@ The repository includes a GitHub Action that automatically creates releases when
    - Create a zip file named `gaussiansplats-1.0.0.zip` containing all plugin files
    - Create a GitHub release with the tag
    - Upload the zip file as a release asset
-
-3. **Users can then install the plugin:**
-   - Download the `gaussiansplats-x.x.x.zip` file from the GitHub release
-   - In QGIS, go to **Plugins** → **Manage and Install Plugins...**
-   - Click **Install from ZIP**
-   - Select the downloaded zip file
 
 ## License
 
