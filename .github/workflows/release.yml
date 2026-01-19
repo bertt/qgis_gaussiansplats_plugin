@@ -17,6 +17,10 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
+      - name: Update version in metadata.txt
+        run: |
+          sed -i "s/^version=.*/version=${{ steps.get_version.outputs.VERSION }}/" src/metadata.txt
+      
       - name: Create plugin zip
         run: |
           cd src

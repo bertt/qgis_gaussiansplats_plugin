@@ -186,14 +186,13 @@ This project uses GitHub Actions to automatically create releases with installab
 
 To create a new release:
 
-1. Update the version in `src/metadata.txt`
-2. Commit the changes: `git commit -am "Bump version to X.Y.Z"`
-3. Create and push a version tag: 
+1. Create and push a version tag: 
    ```bash
    git tag -a vX.Y.Z -m "Release version X.Y.Z"
    git push origin vX.Y.Z
    ```
-4. GitHub Actions will automatically:
+2. GitHub Actions will automatically:
+   - Update the version in `src/metadata.txt` from the tag
    - Package the plugin into `gaussiansplats.zip`
    - Create a GitHub release with the tag
    - Upload the zip file as a release asset
