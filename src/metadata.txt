@@ -1,0 +1,26 @@
+[general]
+name=Gaussian Splats
+qgisMinimumVersion=3.28
+description=Load and visualize 3D Gaussian Splats from URL in 2D and 3D views
+version=0.1.0
+author=Bert Temme
+email=bert.temme@gmail.com
+about=This plugin allows loading Gaussian Splat files (.splat/.ply) from URLs, similar to ArcGIS Pro 3.6. The splats are rendered as point clouds in both 2D map view and 3D view.
+
+tracker=https://github.com/bertt/qgis_gaussiansplats/issues
+repository=https://github.com/bertt/qgis_gaussiansplats
+
+tags=3d,gaussian,splat,point cloud,visualization,radiance field
+
+homepage=https://github.com/bertt/qgis_gaussiansplats
+category=Plugins
+icon=icons/gaussian_splat.png
+
+experimental=True
+deprecated=False
+
+changelog=
+    0.1.0 - Initial release
+        - Load Gaussian Splats from URL
+        - Support for .splat and .ply formats
+        - 2D and 3D visualization
