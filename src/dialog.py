@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
 )
 
-from qgis.core import QgsMessageLog, Qgis, QgsCoordinateReferenceSystem
+from qgis.core import QgsMessageLog, Qgis, QgsCoordinateReferenceSystem, QgsProject
 from qgis.gui import QgisInterface, QgsProjectionSelectionWidget
 
 from .splat_loader import SplatLoaderThread
@@ -239,8 +239,29 @@ class GaussianSplatsDialog(QDialog):
                 self.status_label.setText(f"Loaded {layer_data['point_count']:,} points")
 
                 if self.zoom_to_layer.isChecked():
-                    self.iface.mapCanvas().setExtent(layer.extent())
-                    self.iface.mapCanvas().refresh()
+                    # Get layer extent
+                    extent = layer.extent()
+                    
+                    # Transform extent if map canvas CRS differs from layer CRS
+                    canvas = self.iface.mapCanvas()
+                    layer_crs = layer.crs()
+                    canvas_crs = canvas.mapSettings().destinationCrs()
+                    
+                    if layer_crs != canvas_crs:
+                        # Transform extent to canvas CRS
+                        from qgis.core import QgsCoordinateTransform
+                        transform = QgsCoordinateTransform(layer_crs, canvas_crs, QgsProject.instance())
+                        extent = transform.transformBoundingBox(extent)
+                    
+                    # Set extent with some padding
+                    canvas.setExtent(extent)
+                    canvas.refresh()
+                    
+                    QgsMessageLog.logMessage(
+                        f"Zoomed to extent: {extent.toString()}",
+                        "GaussianSplats",
+                        level=Qgis.Info,
+                    )
 
                 QgsMessageLog.logMessage(
                     f"Successfully loaded Gaussian Splat with {layer_data['point_count']:,} points",
