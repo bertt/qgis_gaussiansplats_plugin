@@ -9,6 +9,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsGeometry,
+    QgsPoint,
     QgsPointXY,
     QgsField,
     QgsFields,
@@ -24,7 +25,7 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 
-from PyQt5.QtCore import QVariant
+from PyQt5.QtCore import QMetaType
 from PyQt5.QtGui import QColor
 
 
@@ -83,22 +84,22 @@ def create_splat_layer(
         # Add attribute fields
         provider = layer.dataProvider()
         fields = QgsFields()
-        fields.append(QgsField("red", QVariant.Int))
-        fields.append(QgsField("green", QVariant.Int))
-        fields.append(QgsField("blue", QVariant.Int))
-        fields.append(QgsField("alpha", QVariant.Int))
-        fields.append(QgsField("scale_x", QVariant.Double))
-        fields.append(QgsField("scale_y", QVariant.Double))
-        fields.append(QgsField("scale_z", QVariant.Double))
-        fields.append(QgsField("color_hex", QVariant.String))
-        fields.append(QgsField("sh_degree", QVariant.Int))
+        fields.append(QgsField("red", QMetaType.Type.Int))
+        fields.append(QgsField("green", QMetaType.Type.Int))
+        fields.append(QgsField("blue", QMetaType.Type.Int))
+        fields.append(QgsField("alpha", QMetaType.Type.Int))
+        fields.append(QgsField("scale_x", QMetaType.Type.Double))
+        fields.append(QgsField("scale_y", QMetaType.Type.Double))
+        fields.append(QgsField("scale_z", QMetaType.Type.Double))
+        fields.append(QgsField("color_hex", QMetaType.Type.QString))
+        fields.append(QgsField("sh_degree", QMetaType.Type.Int))
         
         # Add SH coefficient fields if available
         if sh_coeffs is not None:
             from .sh_utils import get_sh_coeffs_count
             sh_count = get_sh_coeffs_count(sh_degree)
             for i in range(sh_count):
-                fields.append(QgsField(f"sh_{i}", QVariant.Double))
+                fields.append(QgsField(f"sh_{i}", QMetaType.Type.Double))
         
         provider.addAttributes(fields)
         layer.updateFields()
@@ -112,14 +113,11 @@ def create_splat_layer(
             r, g, b, a = colors[i]
             sx, sy, sz = scales[i]
 
-            # Create point geometry with Z
-            point = QgsGeometry.fromPointXY(QgsPointXY(x, y))
-            # Set Z value
-            point.get().addZValue()
-            point.get().setZ(z)
+            # Create point geometry with Z coordinate
+            point = QgsGeometry(QgsPoint(x, y, z))
 
-            # Create feature
-            feature = QgsFeature()
+            # Create feature with the layer's fields
+            feature = QgsFeature(layer.fields())
             feature.setGeometry(point)
             
             # Build attributes list
@@ -152,7 +150,24 @@ def create_splat_layer(
         if features:
             provider.addFeatures(features)
 
+        # Update layer extents
         layer.updateExtents()
+        
+        # Log extent for debugging
+        extent = layer.extent()
+        QgsMessageLog.logMessage(
+            f"Layer extent after adding features: {extent.toString()}",
+            "GaussianSplats",
+            level=Qgis.Info,
+        )
+        
+        # Log sample coordinates for debugging
+        if point_count > 0:
+            QgsMessageLog.logMessage(
+                f"Sample point coordinates: x={positions[0][0]}, y={positions[0][1]}, z={positions[0][2]}",
+                "GaussianSplats",
+                level=Qgis.Info,
+            )
 
         # Apply styling
         _apply_splat_styling(layer, sh_degree, sh_coeffs is not None)
@@ -163,6 +178,9 @@ def create_splat_layer(
 
         # Add to project
         QgsProject.instance().addMapLayer(layer)
+        
+        # Trigger repaint after adding to project
+        layer.triggerRepaint()
 
         QgsMessageLog.logMessage(
             f"Layer '{name}' created successfully",
@@ -206,7 +224,6 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
             renderer = GaussianSplatRenderer(symbol)
             renderer.setUseSH(True)
             layer.setRenderer(renderer)
-            layer.triggerRepaint()
             
             QgsMessageLog.logMessage(
                 f"Applied spherical harmonics renderer (degree {sh_degree})",
@@ -222,37 +239,57 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
             )
     
     # Fall back to standard data-driven renderer
-    # Create a marker symbol with data-driven color
-    symbol = QgsMarkerSymbol.createSimple({
-        "name": "circle",
-        "size": "2",
-        "size_unit": "Point",
-        "outline_style": "no",
-    })
+    try:
+        # Create a marker symbol with data-driven color
+        symbol = QgsMarkerSymbol.createSimple({
+            "name": "circle",
+            "size": "2",
+            "size_unit": "Point",
+            "outline_style": "no",
+            "color": "255,0,0,255",  # Default red color for visibility
+        })
 
-    # Set data-driven color from attributes
-    # Use an expression to build color from RGB attributes
-    color_expression = "color_rgba(\"red\", \"green\", \"blue\", \"alpha\")"
-    symbol.symbolLayer(0).setDataDefinedProperty(
-        symbol.symbolLayer(0).PropertyFillColor,
-        QgsProperty.fromExpression(color_expression),
-    )
+        # Set data-driven color from attributes
+        # Use an expression to build color from RGB attributes
+        color_expression = "color_rgba(\"red\", \"green\", \"blue\", \"alpha\")"
+        color_property = QgsProperty.fromExpression(color_expression)
+        
+        # Set data-driven size based on scale (clamped for visibility)
+        # Constants for size calculation
+        MIN_SIZE = 1
+        MAX_SIZE = 10
+        SIZE_SCALE = 10
+        size_expression = f"clamp({MIN_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE}, {MAX_SIZE})"
+        size_property = QgsProperty.fromExpression(size_expression)
+        
+        # Get the symbol layer
+        symbol_layer = symbol.symbolLayer(0)
+        if symbol_layer:
+            symbol_layer.setDataDefinedProperty(
+                symbol_layer.PropertyFillColor,
+                color_property,
+            )
+            symbol_layer.setDataDefinedProperty(
+                symbol_layer.PropertySize,
+                size_property,
+            )
 
-    # Set data-driven size based on scale (clamped for visibility)
-    # Constants for size calculation
-    MIN_SIZE = 1
-    MAX_SIZE = 10
-    SIZE_SCALE = 10
-    size_expression = f"clamp({MIN_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE}, {MAX_SIZE})"
-    symbol.symbolLayer(0).setDataDefinedProperty(
-        symbol.symbolLayer(0).PropertySize,
-        QgsProperty.fromExpression(size_expression),
-    )
-
-    # Apply renderer
-    renderer = QgsSingleSymbolRenderer(symbol)
-    layer.setRenderer(renderer)
-    layer.triggerRepaint()
+        # Apply renderer
+        renderer = QgsSingleSymbolRenderer(symbol)
+        layer.setRenderer(renderer)
+        
+        QgsMessageLog.logMessage(
+            "Styling applied successfully",
+            "GaussianSplats",
+            level=Qgis.Info,
+        )
+        
+    except Exception as e:
+        QgsMessageLog.logMessage(
+            f"Error applying styling: {str(e)}",
+            "GaussianSplats",
+            level=Qgis.Warning,
+        )
 
 
 def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
@@ -280,10 +317,12 @@ def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bo
         # Configure material with data-driven color
         material = QgsPhongMaterialSettings()
         material.setDiffuse(QColor(128, 128, 128))  # Default gray
-        symbol_3d.setMaterial(material)
+        symbol_3d.setMaterialSettings(material)
 
-        # Set symbol size
-        symbol_3d.setRadius(0.5)
+        # Set symbol size using shape properties
+        # QgsPoint3DSymbol uses a properties dict for shape-specific settings
+        shape_props = {"radius": 0.5}
+        symbol_3d.setShapeProperties(shape_props)
 
         # Create and set 3D renderer
         renderer_3d = QgsVectorLayer3DRenderer()
