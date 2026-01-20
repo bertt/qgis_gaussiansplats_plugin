@@ -59,9 +59,11 @@ def create_splat_layer(
         point_count = layer_data["point_count"]
         crs = layer_data["crs"]
         name = layer_data.get("name", "Gaussian Splat")
+        sh_coeffs = layer_data.get("sh_coeffs")
+        sh_degree = layer_data.get("sh_degree", 0)
 
         QgsMessageLog.logMessage(
-            f"Creating layer with {point_count:,} points",
+            f"Creating layer with {point_count:,} points (SH degree: {sh_degree})",
             "GaussianSplats",
             level=Qgis.Info,
         )
@@ -89,6 +91,15 @@ def create_splat_layer(
         fields.append(QgsField("scale_y", QVariant.Double))
         fields.append(QgsField("scale_z", QVariant.Double))
         fields.append(QgsField("color_hex", QVariant.String))
+        fields.append(QgsField("sh_degree", QVariant.Int))
+        
+        # Add SH coefficient fields if available
+        if sh_coeffs is not None:
+            from .sh_utils import get_sh_coeffs_count
+            sh_count = get_sh_coeffs_count(sh_degree)
+            for i in range(sh_count):
+                fields.append(QgsField(f"sh_{i}", QVariant.Double))
+        
         provider.addAttributes(fields)
         layer.updateFields()
 
@@ -110,7 +121,9 @@ def create_splat_layer(
             # Create feature
             feature = QgsFeature()
             feature.setGeometry(point)
-            feature.setAttributes([
+            
+            # Build attributes list
+            attrs = [
                 int(r),
                 int(g),
                 int(b),
@@ -119,7 +132,15 @@ def create_splat_layer(
                 float(sy),
                 float(sz),
                 f"#{r:02x}{g:02x}{b:02x}",
-            ])
+                int(sh_degree),
+            ]
+            
+            # Add SH coefficients if available
+            if sh_coeffs is not None:
+                sh_values = sh_coeffs[i].tolist()
+                attrs.extend([float(v) for v in sh_values])
+            
+            feature.setAttributes(attrs)
             features.append(feature)
 
             # Add in batches
