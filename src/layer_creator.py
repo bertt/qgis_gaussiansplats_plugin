@@ -105,8 +105,8 @@ def create_splat_layer(
             # Create point geometry with Z coordinate
             point = QgsGeometry(QgsPoint(x, y, z))
 
-            # Create feature
-            feature = QgsFeature()
+            # Create feature with the layer's fields
+            feature = QgsFeature(layer.fields())
             feature.setGeometry(point)
             feature.setAttributes([
                 int(r),
