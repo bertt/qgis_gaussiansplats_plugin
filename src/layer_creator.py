@@ -25,7 +25,7 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 
-from PyQt5.QtCore import QVariant
+from PyQt5.QtCore import QVariant, QMetaType
 from PyQt5.QtGui import QColor
 
 
@@ -82,14 +82,14 @@ def create_splat_layer(
         # Add attribute fields
         provider = layer.dataProvider()
         fields = QgsFields()
-        fields.append(QgsField("red", QVariant.Int))
-        fields.append(QgsField("green", QVariant.Int))
-        fields.append(QgsField("blue", QVariant.Int))
-        fields.append(QgsField("alpha", QVariant.Int))
-        fields.append(QgsField("scale_x", QVariant.Double))
-        fields.append(QgsField("scale_y", QVariant.Double))
-        fields.append(QgsField("scale_z", QVariant.Double))
-        fields.append(QgsField("color_hex", QVariant.String))
+        fields.append(QgsField("red", QMetaType.Type.Int))
+        fields.append(QgsField("green", QMetaType.Type.Int))
+        fields.append(QgsField("blue", QMetaType.Type.Int))
+        fields.append(QgsField("alpha", QMetaType.Type.Int))
+        fields.append(QgsField("scale_x", QMetaType.Type.Double))
+        fields.append(QgsField("scale_y", QMetaType.Type.Double))
+        fields.append(QgsField("scale_z", QMetaType.Type.Double))
+        fields.append(QgsField("color_hex", QMetaType.Type.QString))
         provider.addAttributes(fields)
         layer.updateFields()
 
