@@ -25,7 +25,7 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 
-from PyQt5.QtCore import QVariant, QMetaType
+from PyQt5.QtCore import QMetaType
 from PyQt5.QtGui import QColor
 
 
