@@ -129,7 +129,24 @@ def create_splat_layer(
         if features:
             provider.addFeatures(features)
 
+        # Update layer extents
         layer.updateExtents()
+        
+        # Log extent for debugging
+        extent = layer.extent()
+        QgsMessageLog.logMessage(
+            f"Layer extent after adding features: {extent.toString()}",
+            "GaussianSplats",
+            level=Qgis.Info,
+        )
+        
+        # Log sample coordinates for debugging
+        if point_count > 0:
+            QgsMessageLog.logMessage(
+                f"Sample point coordinates: x={positions[0][0]}, y={positions[0][1]}, z={positions[0][2]}",
+                "GaussianSplats",
+                level=Qgis.Info,
+            )
 
         # Apply styling
         _apply_splat_styling(layer)
