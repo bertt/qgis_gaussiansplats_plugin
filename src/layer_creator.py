@@ -220,8 +220,10 @@ def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
         material.setDiffuse(QColor(128, 128, 128))  # Default gray
         symbol_3d.setMaterialSettings(material)
 
-        # Set symbol size
-        symbol_3d.setRadius(0.5)
+        # Set symbol size using shape properties
+        # QgsPoint3DSymbol uses a properties dict for shape-specific settings
+        shape_props = {"radius": 0.5}
+        symbol_3d.setShapeProperties(shape_props)
 
         # Create and set 3D renderer
         renderer_3d = QgsVectorLayer3DRenderer()
