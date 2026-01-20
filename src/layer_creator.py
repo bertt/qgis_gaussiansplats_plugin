@@ -218,7 +218,7 @@ def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
         # Configure material with data-driven color
         material = QgsPhongMaterialSettings()
         material.setDiffuse(QColor(128, 128, 128))  # Default gray
-        symbol_3d.setMaterial(material)
+        symbol_3d.setMaterialSettings(material)
 
         # Set symbol size
         symbol_3d.setRadius(0.5)
