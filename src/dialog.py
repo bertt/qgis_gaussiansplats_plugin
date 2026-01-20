@@ -18,7 +18,13 @@ from PyQt5.QtWidgets import (
     QCheckBox,
 )
 
-from qgis.core import QgsMessageLog, Qgis, QgsCoordinateReferenceSystem, QgsProject
+from qgis.core import (
+    QgsMessageLog,
+    Qgis,
+    QgsCoordinateReferenceSystem,
+    QgsProject,
+    QgsCoordinateTransform,
+)
 from qgis.gui import QgisInterface, QgsProjectionSelectionWidget
 
 from .splat_loader import SplatLoaderThread
@@ -249,7 +255,6 @@ class GaussianSplatsDialog(QDialog):
                     
                     if layer_crs != canvas_crs:
                         # Transform extent to canvas CRS
-                        from qgis.core import QgsCoordinateTransform
                         transform = QgsCoordinateTransform(layer_crs, canvas_crs, QgsProject.instance())
                         extent = transform.transformBoundingBox(extent)
                     
