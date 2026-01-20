@@ -253,10 +253,26 @@ class GaussianSplatsDialog(QDialog):
                     layer_crs = layer.crs()
                     canvas_crs = canvas.mapSettings().destinationCrs()
                     
+                    QgsMessageLog.logMessage(
+                        f"Zoom debug - Layer CRS: {layer_crs.authid()}, Canvas CRS: {canvas_crs.authid()}",
+                        "GaussianSplats",
+                        level=Qgis.Info,
+                    )
+                    QgsMessageLog.logMessage(
+                        f"Zoom debug - Layer extent before transform: {extent.toString()}",
+                        "GaussianSplats",
+                        level=Qgis.Info,
+                    )
+                    
                     if layer_crs != canvas_crs:
                         # Transform extent to canvas CRS
                         transform = QgsCoordinateTransform(layer_crs, canvas_crs, QgsProject.instance())
                         extent = transform.transformBoundingBox(extent)
+                        QgsMessageLog.logMessage(
+                            f"Zoom debug - Layer extent after transform to {canvas_crs.authid()}: {extent.toString()}",
+                            "GaussianSplats",
+                            level=Qgis.Info,
+                        )
                     
                     # Set extent with some padding
                     canvas.setExtent(extent)
