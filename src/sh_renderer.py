@@ -23,6 +23,12 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from .sh_utils import eval_sh
 
 
+# Constants for point size calculation
+SIZE_SCALE_FACTOR = 10  # Multiplier for converting scale to point size
+MIN_SYMBOL_SIZE = 1     # Minimum point size in pixels
+MAX_SYMBOL_SIZE = 10    # Maximum point size in pixels
+
+
 class GaussianSplatRenderer(QgsFeatureRenderer):
     """Custom renderer for Gaussian Splats with view-dependent spherical harmonics.
     
@@ -129,7 +135,7 @@ class GaussianSplatRenderer(QgsFeatureRenderer):
             symbol.setColor(color)
         
         # Set data-driven size based on scale
-        size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
+        size_expression = f"clamp({MIN_SYMBOL_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE_FACTOR}, {MAX_SYMBOL_SIZE})"
         symbol.symbolLayer(0).setDataDefinedProperty(
             symbol.symbolLayer(0).PropertySize,
             QgsProperty.fromExpression(size_expression),

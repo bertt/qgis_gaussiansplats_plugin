@@ -131,15 +131,25 @@ def eval_sh(sh_coeffs: np.ndarray, direction: np.ndarray, sh_degree: int = 3) ->
     if norm > 0:
         direction = direction / norm
     
-    # Evaluate based on degree
-    if sh_degree == 0 or len(sh_coeffs) == 3:
+    # Evaluate based on degree (prioritize explicit parameter over array length)
+    if sh_degree == 0:
         result = eval_sh_degree_0(sh_coeffs[0:3])
-    elif sh_degree == 1 or len(sh_coeffs) == 12:
+    elif sh_degree == 1:
         result = eval_sh_degree_1(sh_coeffs[0:12], direction)
-    elif sh_degree == 2 or len(sh_coeffs) == 27:
+    elif sh_degree == 2:
         result = eval_sh_degree_2(sh_coeffs[0:27], direction)
-    else:  # degree 3 or higher
+    elif sh_degree == 3:
         result = eval_sh_degree_3(sh_coeffs[0:48], direction)
+    else:
+        # Fall back to inferring from array length if degree is invalid
+        if len(sh_coeffs) <= 3:
+            result = eval_sh_degree_0(sh_coeffs[0:3])
+        elif len(sh_coeffs) <= 12:
+            result = eval_sh_degree_1(sh_coeffs[0:12], direction)
+        elif len(sh_coeffs) <= 27:
+            result = eval_sh_degree_2(sh_coeffs[0:27], direction)
+        else:
+            result = eval_sh_degree_3(sh_coeffs[0:48], direction)
     
     # Add 0.5 offset and clamp to [0, 1]
     result = 0.5 + result

@@ -239,7 +239,11 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
     )
 
     # Set data-driven size based on scale (clamped for visibility)
-    size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
+    # Constants for size calculation
+    MIN_SIZE = 1
+    MAX_SIZE = 10
+    SIZE_SCALE = 10
+    size_expression = f"clamp({MIN_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE}, {MAX_SIZE})"
     symbol.symbolLayer(0).setDataDefinedProperty(
         symbol.symbolLayer(0).PropertySize,
         QgsProperty.fromExpression(size_expression),
