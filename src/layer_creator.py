@@ -155,11 +155,11 @@ def create_splat_layer(
         layer.updateExtents()
 
         # Apply styling
-        _apply_splat_styling(layer)
+        _apply_splat_styling(layer, sh_degree, sh_coeffs is not None)
 
         # Configure for 3D if requested
         if add_to_3d:
-            _configure_3d_renderer(layer)
+            _configure_3d_renderer(layer, sh_degree, sh_coeffs is not None)
 
         # Add to project
         QgsProject.instance().addMapLayer(layer)
@@ -181,12 +181,47 @@ def create_splat_layer(
         return None
 
 
-def _apply_splat_styling(layer: QgsVectorLayer) -> None:
+def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
     """Apply data-driven styling to the splat layer.
 
     Args:
         layer: The vector layer to style.
+        sh_degree: Spherical harmonics degree (0-3).
+        has_sh: Whether the layer has spherical harmonics data.
     """
+    # Try to use custom SH renderer if SH data is available and degree > 0
+    if has_sh and sh_degree > 0:
+        try:
+            from .sh_renderer import GaussianSplatRenderer
+            
+            # Create base symbol
+            symbol = QgsMarkerSymbol.createSimple({
+                "name": "circle",
+                "size": "2",
+                "size_unit": "Point",
+                "outline_style": "no",
+            })
+            
+            # Create and configure SH renderer
+            renderer = GaussianSplatRenderer(symbol)
+            renderer.setUseSH(True)
+            layer.setRenderer(renderer)
+            layer.triggerRepaint()
+            
+            QgsMessageLog.logMessage(
+                f"Applied spherical harmonics renderer (degree {sh_degree})",
+                "GaussianSplats",
+                level=Qgis.Info,
+            )
+            return
+        except Exception as e:
+            QgsMessageLog.logMessage(
+                f"Failed to apply SH renderer, falling back to standard renderer: {e}",
+                "GaussianSplats",
+                level=Qgis.Warning,
+            )
+    
+    # Fall back to standard data-driven renderer
     # Create a marker symbol with data-driven color
     symbol = QgsMarkerSymbol.createSimple({
         "name": "circle",
@@ -216,13 +251,15 @@ def _apply_splat_styling(layer: QgsVectorLayer) -> None:
     layer.triggerRepaint()
 
 
-def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
+def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
     """Configure 3D rendering for the layer.
 
     This sets up the layer to be visible in QGIS 3D map views.
 
     Args:
         layer: The vector layer to configure.
+        sh_degree: Spherical harmonics degree (0-3).
+        has_sh: Whether the layer has spherical harmonics data.
     """
     try:
         # Import 3D-specific classes (may not be available in all QGIS builds)
