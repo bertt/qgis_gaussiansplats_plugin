@@ -294,7 +294,6 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
 
 
 def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
-def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
     """Configure 3D rendering for the layer.
 
     This sets up the layer to be visible in QGIS 3D map views.
