@@ -260,6 +260,7 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
         MAX_SIZE = 10
         SIZE_SCALE = 10
         size_expression = f"clamp({MIN_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE}, {MAX_SIZE})"
+        size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
         size_property = QgsProperty.fromExpression(size_expression)
         
         # Get the symbol layer
@@ -293,6 +294,7 @@ def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool
 
 
 def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
+def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
     """Configure 3D rendering for the layer.
 
     This sets up the layer to be visible in QGIS 3D map views.
