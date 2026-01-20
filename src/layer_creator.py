@@ -9,6 +9,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsGeometry,
+    QgsPoint,
     QgsPointXY,
     QgsField,
     QgsFields,
@@ -101,11 +102,8 @@ def create_splat_layer(
             r, g, b, a = colors[i]
             sx, sy, sz = scales[i]
 
-            # Create point geometry with Z
-            point = QgsGeometry.fromPointXY(QgsPointXY(x, y))
-            # Set Z value
-            point.get().addZValue()
-            point.get().setZ(z)
+            # Create point geometry with Z coordinate
+            point = QgsGeometry(QgsPoint(x, y, z))
 
             # Create feature
             feature = QgsFeature()
