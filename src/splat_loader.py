@@ -303,10 +303,11 @@ class SplatLoaderThread(QThread):
         
         if max_sh_rest >= 0:
             # Determine degree from number of rest coefficients
-            # Degree 0: 0 rest coeffs (only f_dc_0-2)
-            # Degree 1: 9 rest coeffs (f_rest_0-8) -> 3 additional basis × 3 RGB
-            # Degree 2: 24 rest coeffs (f_rest_0-23) -> 5 additional basis × 3 RGB
-            # Degree 3: 45 rest coeffs (f_rest_0-44) -> 7 additional basis × 3 RGB
+            # SH has (degree+1)² basis functions × 3 RGB channels
+            # Degree 0: 1² × 3 = 3 total (only f_dc_0-2), 0 rest coeffs
+            # Degree 1: 4² × 3 = 12 total, 9 rest coeffs (f_rest_0-8)
+            # Degree 2: 9² × 3 = 27 total, 24 rest coeffs (f_rest_0-23)
+            # Degree 3: 16² × 3 = 48 total, 45 rest coeffs (f_rest_0-44)
             if max_sh_rest >= 44:
                 sh_degree = 3
             elif max_sh_rest >= 23:
@@ -354,19 +355,22 @@ class SplatLoaderThread(QThread):
                 
                 # Store rest components if available
                 if sh_degree >= 1:
-                    # Degree 1: f_rest_0 to f_rest_8 (9 coefficients for 3 RGB channels)
+                    # Degree 1 adds 3 basis functions (4 total - 1 DC) × 3 RGB = 9 coeffs
+                    # f_rest_0 to f_rest_8
                     for j in range(9):
                         if f"f_rest_{j}" in prop_index:
                             sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]
                 
                 if sh_degree >= 2:
-                    # Degree 2: f_rest_9 to f_rest_23 (15 coefficients for 3 RGB channels × 5 basis)
+                    # Degree 2 adds 5 basis functions (9 total - 4 from deg 0-1) × 3 RGB = 15 coeffs
+                    # f_rest_9 to f_rest_23
                     for j in range(9, 24):
                         if f"f_rest_{j}" in prop_index:
                             sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]
                 
                 if sh_degree >= 3:
-                    # Degree 3: f_rest_24 to f_rest_44 (21 coefficients for 3 RGB channels × 7 basis)
+                    # Degree 3 adds 7 basis functions (16 total - 9 from deg 0-2) × 3 RGB = 21 coeffs
+                    # f_rest_24 to f_rest_44
                     for j in range(24, 45):
                         if f"f_rest_{j}" in prop_index:
                             sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]

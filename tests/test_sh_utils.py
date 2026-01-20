@@ -110,7 +110,8 @@ def test_multiple_degrees():
         np.array([-1.0, 0.0, 0.0]), # left
     ]
     
-    # Create degree 3 coefficients (48 total)
+    # Create degree 3 coefficients (48 total) with fixed seed for determinism
+    np.random.seed(42)
     sh_coeffs = np.random.randn(48).astype(np.float32) * 0.5
     
     for direction in directions:
