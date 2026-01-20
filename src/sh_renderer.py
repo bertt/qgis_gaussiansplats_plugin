@@ -20,7 +20,7 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 
-from .sh_utils import eval_sh
+from .sh_utils import eval_sh, get_sh_coeffs_count
 
 
 # Constants for point size calculation
@@ -109,8 +109,6 @@ class GaussianSplatRenderer(QgsFeatureRenderer):
                 symbol.setColor(color)
         else:
             # Evaluate spherical harmonics
-            from .sh_utils import get_sh_coeffs_count
-            
             sh_count = get_sh_coeffs_count(sh_degree)
             sh_coeffs = np.zeros(sh_count, dtype=np.float32)
             

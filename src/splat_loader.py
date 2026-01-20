@@ -13,7 +13,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 from qgis.core import QgsCoordinateReferenceSystem
 
-from .sh_utils import get_sh_coeffs_count
+from .sh_utils import get_sh_coeffs_count, SH_C0
 
 
 # SPZ format constants
@@ -282,9 +282,6 @@ class SplatLoaderThread(QThread):
         scales = np.zeros((vertex_count, 3), dtype=np.float32)
         rotations = np.zeros((vertex_count, 4), dtype=np.float32)
 
-        # Spherical harmonics constant for color conversion
-        SH_C0 = 0.28209479177387814
-
         # Check which properties exist
         has_sh = "f_dc_0" in prop_index
         has_scale = "scale_0" in prop_index
@@ -308,12 +305,14 @@ class SplatLoaderThread(QThread):
             # Degree 1: (1+1)² = 4 basis × 3 = 12 total, 9 rest coeffs (f_rest_0-8)
             # Degree 2: (2+1)² = 9 basis × 3 = 27 total, 24 rest coeffs (f_rest_0-23)
             # Degree 3: (3+1)² = 16 basis × 3 = 48 total, 45 rest coeffs (f_rest_0-44)
+            # Note: We check for complete degree sets; partial coefficients default to lower degree
             if max_sh_rest >= 44:
                 sh_degree = 3
             elif max_sh_rest >= 23:
                 sh_degree = 2
             elif max_sh_rest >= 8:
                 sh_degree = 1
+            # else: sh_degree remains 0 (incomplete coefficient set)
         
         # Allocate SH coefficients array if we have SH data
         sh_coeffs = None
