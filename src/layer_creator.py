@@ -140,6 +140,9 @@ def create_splat_layer(
 
         # Add to project
         QgsProject.instance().addMapLayer(layer)
+        
+        # Trigger repaint after adding to project
+        layer.triggerRepaint()
 
         QgsMessageLog.logMessage(
             f"Layer '{name}' created successfully",
@@ -164,33 +167,53 @@ def _apply_splat_styling(layer: QgsVectorLayer) -> None:
     Args:
         layer: The vector layer to style.
     """
-    # Create a marker symbol with data-driven color
-    symbol = QgsMarkerSymbol.createSimple({
-        "name": "circle",
-        "size": "2",
-        "size_unit": "Point",
-        "outline_style": "no",
-    })
+    try:
+        # Create a marker symbol with data-driven color
+        symbol = QgsMarkerSymbol.createSimple({
+            "name": "circle",
+            "size": "2",
+            "size_unit": "Point",
+            "outline_style": "no",
+            "color": "255,0,0,255",  # Default red color for visibility
+        })
 
-    # Set data-driven color from attributes
-    # Use an expression to build color from RGB attributes
-    color_expression = "color_rgba(\"red\", \"green\", \"blue\", \"alpha\")"
-    symbol.symbolLayer(0).setDataDefinedProperty(
-        symbol.symbolLayer(0).PropertyFillColor,
-        QgsProperty.fromExpression(color_expression),
-    )
+        # Set data-driven color from attributes
+        # Use an expression to build color from RGB attributes
+        color_expression = "color_rgba(\"red\", \"green\", \"blue\", \"alpha\")"
+        color_property = QgsProperty.fromExpression(color_expression)
+        
+        # Set data-driven size based on scale (clamped for visibility)
+        size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
+        size_property = QgsProperty.fromExpression(size_expression)
+        
+        # Get the symbol layer
+        symbol_layer = symbol.symbolLayer(0)
+        if symbol_layer:
+            symbol_layer.setDataDefinedProperty(
+                symbol_layer.PropertyFillColor,
+                color_property,
+            )
+            symbol_layer.setDataDefinedProperty(
+                symbol_layer.PropertySize,
+                size_property,
+            )
 
-    # Set data-driven size based on scale (clamped for visibility)
-    size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
-    symbol.symbolLayer(0).setDataDefinedProperty(
-        symbol.symbolLayer(0).PropertySize,
-        QgsProperty.fromExpression(size_expression),
-    )
-
-    # Apply renderer
-    renderer = QgsSingleSymbolRenderer(symbol)
-    layer.setRenderer(renderer)
-    layer.triggerRepaint()
+        # Apply renderer
+        renderer = QgsSingleSymbolRenderer(symbol)
+        layer.setRenderer(renderer)
+        
+        QgsMessageLog.logMessage(
+            "Styling applied successfully",
+            "GaussianSplats",
+            level=Qgis.Info,
+        )
+        
+    except Exception as e:
+        QgsMessageLog.logMessage(
+            f"Error applying styling: {str(e)}",
+            "GaussianSplats",
+            level=Qgis.Warning,
+        )
 
 
 def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
