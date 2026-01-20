@@ -4,11 +4,12 @@ A QGIS plugin for loading and visualizing 3D Gaussian Splats from URL, similar t
 
 ## Features
 
-- Load Gaussian Splats from URL (`.splat` and `.ply` formats)
+- Load Gaussian Splats from URL (`.splat`, `.ply`, and `.spz` formats)
 - Visualize splats in 2D map view as colored point clouds
 - Visualize splats in QGIS 3D View
+- **Spherical harmonics support** for view-dependent colors (PLY and SPZ formats)
 - Configure georeferencing (CRS, origin, scale)
-- Data-driven styling based on splat colors
+- Data-driven styling based on splat colors and attributes
 
 ## Requirements
 
@@ -109,8 +110,24 @@ Todo
 
 After loading, right-click the layer and check:
 - **Properties** → **Source**: Should show PointZ geometry
-- **Properties** → **Symbology**: Should show data-driven color styling
-- **Attribute Table**: Should have columns for red, green, blue, alpha, scale_x, scale_y, scale_z
+- **Properties** → **Symbology**: Should show data-driven color styling or custom spherical harmonics renderer
+- **Attribute Table**: Should have columns for red, green, blue, alpha, scale_x, scale_y, scale_z, sh_degree, and sh_* coefficients (if available)
+
+## Spherical Harmonics Support
+
+The plugin now supports spherical harmonics (SH) for view-dependent color rendering:
+
+- **Automatic Detection**: When loading PLY or SPZ files with SH data, the plugin automatically detects and parses SH coefficients up to degree 3
+- **View-Dependent Colors**: In 2D map view, points are rendered using a custom renderer that evaluates SH based on viewing direction
+- **3D View Support**: The standard 3D renderer is used for 3D map views
+- **Performance**: SH coefficients (up to 48 per point for degree 3) are stored as layer attributes for dynamic evaluation
+
+### Supported SH Degrees
+
+- **Degree 0**: DC component only (3 coefficients: f_dc_0, f_dc_1, f_dc_2)
+- **Degree 1**: DC + 3 directional components (12 coefficients total)
+- **Degree 2**: DC + degrees 1-2 (27 coefficients total)
+- **Degree 3**: DC + degrees 1-3 (48 coefficients total)
 
 ## File Formats
 
@@ -121,15 +138,28 @@ Binary format with 32 bytes per splat:
 - 12 bytes: Scale (3 × float32: sx, sy, sz)
 - 4 bytes: Color (4 × uint8: r, g, b, a)
 - 4 bytes: Rotation (4 × uint8: quaternion components)
+- **Note**: Does not include spherical harmonics data
 
 ### .ply Format
 
 Standard PLY format with Gaussian Splat properties:
 - `x, y, z`: Position
 - `scale_0, scale_1, scale_2`: Scale (log-space)
-- `f_dc_0, f_dc_1, f_dc_2`: Spherical harmonics coefficients for color
+- `f_dc_0, f_dc_1, f_dc_2`: Spherical harmonics DC coefficients (degree 0)
+- `f_rest_0` to `f_rest_44`: Higher-degree SH coefficients (degrees 1-3, optional)
 - `opacity`: Opacity (logit-space)
 - `rot_0, rot_1, rot_2, rot_3`: Rotation quaternion
+
+### .spz Format
+
+Compressed format by Niantic Labs (gzipped):
+- Header with magic number, version, point count, and SH degree
+- Position data (24-bit fixed point per component)
+- Alpha values (uint8)
+- RGB colors (uint8)
+- Scale values (log-encoded uint8)
+- Rotation quaternions (compressed)
+- Optional spherical harmonics coefficients (signed bytes)
 
 ## Troubleshooting
 
