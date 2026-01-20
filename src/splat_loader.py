@@ -13,6 +13,8 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 from qgis.core import QgsCoordinateReferenceSystem
 
+from .sh_utils import get_sh_coeffs_count, SH_C0
+
 
 # SPZ format constants
 SPZ_MAGIC = 0x5053474E  # 'NGSP' in little endian
@@ -198,6 +200,8 @@ class SplatLoaderThread(QThread):
             "colors": colors,
             "scales": scales,
             "rotations": rotations,
+            "sh_coeffs": None,  # .splat format doesn't include SH data
+            "sh_degree": 0,
             "point_count": num_splats,
             "crs": self.crs,
             "name": self.url.split("/")[-1].replace(".splat", "").replace(".ply", "").replace(".spz", ""),
@@ -278,15 +282,43 @@ class SplatLoaderThread(QThread):
         scales = np.zeros((vertex_count, 3), dtype=np.float32)
         rotations = np.zeros((vertex_count, 4), dtype=np.float32)
 
-        # Spherical harmonics constant for color conversion
-        SH_C0 = 0.28209479177387814
-
         # Check which properties exist
         has_sh = "f_dc_0" in prop_index
         has_scale = "scale_0" in prop_index
         has_opacity = "opacity" in prop_index
         has_rot = "rot_0" in prop_index
         has_rgb = "red" in prop_index
+        
+        # Detect SH degree from properties
+        sh_degree = 0
+        max_sh_rest = -1
+        for prop_name in prop_index.keys():
+            if prop_name.startswith("f_rest_"):
+                # f_rest_0, f_rest_1, ... f_rest_44 for degree 3
+                rest_idx = int(prop_name.split("_")[-1])
+                max_sh_rest = max(max_sh_rest, rest_idx)
+        
+        if max_sh_rest >= 0:
+            # Determine degree from number of rest coefficients
+            # SH has (degree+1)² basis functions, each with 3 RGB coefficients
+            # Degree 0: (0+1)² = 1 basis × 3 = 3 total (only f_dc_0-2), 0 rest coeffs
+            # Degree 1: (1+1)² = 4 basis × 3 = 12 total, 9 rest coeffs (f_rest_0-8)
+            # Degree 2: (2+1)² = 9 basis × 3 = 27 total, 24 rest coeffs (f_rest_0-23)
+            # Degree 3: (3+1)² = 16 basis × 3 = 48 total, 45 rest coeffs (f_rest_0-44)
+            # Note: We check for complete degree sets; partial coefficients default to lower degree
+            if max_sh_rest >= 44:
+                sh_degree = 3
+            elif max_sh_rest >= 23:
+                sh_degree = 2
+            elif max_sh_rest >= 8:
+                sh_degree = 1
+            # else: sh_degree remains 0 (incomplete coefficient set)
+        
+        # Allocate SH coefficients array if we have SH data
+        sh_coeffs = None
+        if has_sh:
+            sh_coeffs_count = get_sh_coeffs_count(sh_degree)
+            sh_coeffs = np.zeros((vertex_count, sh_coeffs_count), dtype=np.float32)
 
         for i in range(vertex_count):
             if self._cancelled:
@@ -315,6 +347,34 @@ class SplatLoaderThread(QThread):
 
             # Color from spherical harmonics or direct RGB
             if has_sh:
+                # Store DC component (f_dc_0-2) in first 3 positions
+                sh_coeffs[i, 0] = values[prop_index["f_dc_0"]]
+                sh_coeffs[i, 1] = values[prop_index["f_dc_1"]]
+                sh_coeffs[i, 2] = values[prop_index["f_dc_2"]]
+                
+                # Store rest components if available
+                if sh_degree >= 1:
+                    # Degree 1 adds 3 basis functions (for 4 total) × 3 RGB = 9 new coeffs
+                    # f_rest_0 to f_rest_8
+                    for j in range(9):
+                        if f"f_rest_{j}" in prop_index:
+                            sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]
+                
+                if sh_degree >= 2:
+                    # Degree 2 adds 5 basis functions (for 9 total) × 3 RGB = 15 new coeffs
+                    # f_rest_9 to f_rest_23
+                    for j in range(9, 24):
+                        if f"f_rest_{j}" in prop_index:
+                            sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]
+                
+                if sh_degree >= 3:
+                    # Degree 3 adds 7 basis functions (for 16 total) × 3 RGB = 21 new coeffs
+                    # f_rest_24 to f_rest_44
+                    for j in range(24, 45):
+                        if f"f_rest_{j}" in prop_index:
+                            sh_coeffs[i, 3 + j] = values[prop_index[f"f_rest_{j}"]]
+                
+                # Convert DC component to color for display (degree 0 only)
                 r = 0.5 + SH_C0 * values[prop_index["f_dc_0"]]
                 g = 0.5 + SH_C0 * values[prop_index["f_dc_1"]]
                 b = 0.5 + SH_C0 * values[prop_index["f_dc_2"]]
@@ -362,6 +422,8 @@ class SplatLoaderThread(QThread):
             "colors": colors,
             "scales": scales,
             "rotations": rotations,
+            "sh_coeffs": sh_coeffs,
+            "sh_degree": sh_degree,
             "point_count": vertex_count,
             "crs": self.crs,
             "name": self.url.split("/")[-1].replace(".splat", "").replace(".ply", "").replace(".spz", ""),
@@ -450,6 +512,12 @@ class SplatLoaderThread(QThread):
         colors = np.zeros((num_points, 4), dtype=np.uint8)
         scales = np.zeros((num_points, 3), dtype=np.float32)
         rotations = np.zeros((num_points, 4), dtype=np.float32)
+        
+        # Allocate SH coefficients array if we have SH data
+        sh_coeffs = None
+        if sh_degree > 0:
+            sh_coeffs_count = get_sh_coeffs_count(sh_degree)
+            sh_coeffs = np.zeros((num_points, sh_coeffs_count), dtype=np.float32)
 
         # Parse positions (24-bit fixed point per component)
         offset = 16
@@ -558,6 +626,28 @@ class SplatLoaderThread(QThread):
 
                 rotations[i] = [qw, qx, qy, qz]
 
+        # Parse spherical harmonics (if present)
+        if sh_coeffs is not None and sh_coeffs_per_point > 0:
+            self.progress.emit(93, "Parsing spherical harmonics...")
+            for i in range(num_points):
+                if self._cancelled:
+                    return {}
+                    
+                # SPZ stores SH as signed bytes
+                for j in range(sh_coeffs_per_point):
+                    sh_val = struct.unpack("b", bytes([decompressed[offset]]))[0] / 127.0
+                    
+                    # Map to the correct position in sh_coeffs array
+                    # First 3 coefficients are f_dc (degree 0), rest are higher degrees
+                    if j < 3:
+                        # f_dc_0, f_dc_1, f_dc_2
+                        sh_coeffs[i, j] = sh_val
+                    else:
+                        # f_rest coefficients
+                        sh_coeffs[i, 3 + (j - 3)] = sh_val
+                    
+                    offset += 1
+
         self.progress.emit(95, "Finalizing...")
 
         return {
@@ -565,6 +655,8 @@ class SplatLoaderThread(QThread):
             "colors": colors,
             "scales": scales,
             "rotations": rotations,
+            "sh_coeffs": sh_coeffs,
+            "sh_degree": sh_degree,
             "point_count": num_points,
             "crs": self.crs,
             "name": self.url.split("/")[-1].replace(".splat", "").replace(".ply", "").replace(".spz", ""),

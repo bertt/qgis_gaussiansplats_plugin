@@ -60,9 +60,11 @@ def create_splat_layer(
         point_count = layer_data["point_count"]
         crs = layer_data["crs"]
         name = layer_data.get("name", "Gaussian Splat")
+        sh_coeffs = layer_data.get("sh_coeffs")
+        sh_degree = layer_data.get("sh_degree", 0)
 
         QgsMessageLog.logMessage(
-            f"Creating layer with {point_count:,} points",
+            f"Creating layer with {point_count:,} points (SH degree: {sh_degree})",
             "GaussianSplats",
             level=Qgis.Info,
         )
@@ -90,6 +92,15 @@ def create_splat_layer(
         fields.append(QgsField("scale_y", QMetaType.Type.Double))
         fields.append(QgsField("scale_z", QMetaType.Type.Double))
         fields.append(QgsField("color_hex", QMetaType.Type.QString))
+        fields.append(QgsField("sh_degree", QMetaType.Type.Int))
+        
+        # Add SH coefficient fields if available
+        if sh_coeffs is not None:
+            from .sh_utils import get_sh_coeffs_count
+            sh_count = get_sh_coeffs_count(sh_degree)
+            for i in range(sh_count):
+                fields.append(QgsField(f"sh_{i}", QMetaType.Type.Double))
+        
         provider.addAttributes(fields)
         layer.updateFields()
 
@@ -108,7 +119,9 @@ def create_splat_layer(
             # Create feature with the layer's fields
             feature = QgsFeature(layer.fields())
             feature.setGeometry(point)
-            feature.setAttributes([
+            
+            # Build attributes list
+            attrs = [
                 int(r),
                 int(g),
                 int(b),
@@ -117,7 +130,15 @@ def create_splat_layer(
                 float(sy),
                 float(sz),
                 f"#{r:02x}{g:02x}{b:02x}",
-            ])
+                int(sh_degree),
+            ]
+            
+            # Add SH coefficients if available
+            if sh_coeffs is not None:
+                sh_values = sh_coeffs[i].tolist()
+                attrs.extend([float(v) for v in sh_values])
+            
+            feature.setAttributes(attrs)
             features.append(feature)
 
             # Add in batches
@@ -149,11 +170,11 @@ def create_splat_layer(
             )
 
         # Apply styling
-        _apply_splat_styling(layer)
+        _apply_splat_styling(layer, sh_degree, sh_coeffs is not None)
 
         # Configure for 3D if requested
         if add_to_3d:
-            _configure_3d_renderer(layer)
+            _configure_3d_renderer(layer, sh_degree, sh_coeffs is not None)
 
         # Add to project
         QgsProject.instance().addMapLayer(layer)
@@ -178,12 +199,46 @@ def create_splat_layer(
         return None
 
 
-def _apply_splat_styling(layer: QgsVectorLayer) -> None:
+def _apply_splat_styling(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
     """Apply data-driven styling to the splat layer.
 
     Args:
         layer: The vector layer to style.
+        sh_degree: Spherical harmonics degree (0-3).
+        has_sh: Whether the layer has spherical harmonics data.
     """
+    # Try to use custom SH renderer if SH data is available and degree > 0
+    if has_sh and sh_degree > 0:
+        try:
+            from .sh_renderer import GaussianSplatRenderer
+            
+            # Create base symbol
+            symbol = QgsMarkerSymbol.createSimple({
+                "name": "circle",
+                "size": "2",
+                "size_unit": "Point",
+                "outline_style": "no",
+            })
+            
+            # Create and configure SH renderer
+            renderer = GaussianSplatRenderer(symbol)
+            renderer.setUseSH(True)
+            layer.setRenderer(renderer)
+            
+            QgsMessageLog.logMessage(
+                f"Applied spherical harmonics renderer (degree {sh_degree})",
+                "GaussianSplats",
+                level=Qgis.Info,
+            )
+            return
+        except Exception as e:
+            QgsMessageLog.logMessage(
+                f"Failed to apply SH renderer, falling back to standard renderer: {e}",
+                "GaussianSplats",
+                level=Qgis.Warning,
+            )
+    
+    # Fall back to standard data-driven renderer
     try:
         # Create a marker symbol with data-driven color
         symbol = QgsMarkerSymbol.createSimple({
@@ -200,6 +255,11 @@ def _apply_splat_styling(layer: QgsVectorLayer) -> None:
         color_property = QgsProperty.fromExpression(color_expression)
         
         # Set data-driven size based on scale (clamped for visibility)
+        # Constants for size calculation
+        MIN_SIZE = 1
+        MAX_SIZE = 10
+        SIZE_SCALE = 10
+        size_expression = f"clamp({MIN_SIZE}, (\"scale_x\" + \"scale_y\") / 2 * {SIZE_SCALE}, {MAX_SIZE})"
         size_expression = "clamp(1, (\"scale_x\" + \"scale_y\") / 2 * 10, 10)"
         size_property = QgsProperty.fromExpression(size_expression)
         
@@ -233,13 +293,15 @@ def _apply_splat_styling(layer: QgsVectorLayer) -> None:
         )
 
 
-def _configure_3d_renderer(layer: QgsVectorLayer) -> None:
+def _configure_3d_renderer(layer: QgsVectorLayer, sh_degree: int = 0, has_sh: bool = False) -> None:
     """Configure 3D rendering for the layer.
 
     This sets up the layer to be visible in QGIS 3D map views.
 
     Args:
         layer: The vector layer to configure.
+        sh_degree: Spherical harmonics degree (0-3).
+        has_sh: Whether the layer has spherical harmonics data.
     """
     try:
         # Import 3D-specific classes (may not be available in all QGIS builds)
