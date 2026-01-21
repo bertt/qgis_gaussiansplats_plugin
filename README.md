@@ -4,7 +4,7 @@ A QGIS plugin for loading and visualizing 3D Gaussian Splats from URL, similar t
 
 ## Features
 
-- Load Gaussian Splats from URL (`.splat` and `.ply` formats)
+- Load Gaussian Splats from URL (`.splat`, `.ply`, and `.spz` formats)
 - Visualize splats in 2D map view as colored point clouds
 - Visualize splats in QGIS 3D View
 - Configure georeferencing (CRS, origin, scale)
@@ -62,7 +62,7 @@ Copy the entire 'src' folder to your QGIS plugins directory:
 1. Click the **Gaussian Splats** button in the toolbar, or go to **Plugins** → **Gaussian Splats** → **Load Gaussian Splats from URL**
 
 2. In the dialog:
-   - Enter a URL to a `.splat` or `.ply` file
+   - Enter a URL to a `.splat`, `.ply`, or `.spz` file
    - Or select from the example URLs dropdown
 
 3. Configure georeferencing (optional):
@@ -130,6 +130,20 @@ Standard PLY format with Gaussian Splat properties:
 - `f_dc_0, f_dc_1, f_dc_2`: Spherical harmonics coefficients for color
 - `opacity`: Opacity (logit-space)
 - `rot_0, rot_1, rot_2, rot_3`: Rotation quaternion
+
+### .spz Format
+
+Compressed format by Niantic Labs (gzip compressed):
+- 16-byte header with magic number, version, point count, and encoding parameters
+- Positions: 24-bit fixed-point per component (compressed)
+- Alphas: uint8 per point
+- Colors: RGB (3 × uint8 per point)
+- Scales: Log-encoded uint8 (3 per point)
+- Rotations: Quaternion components (smallest-three encoding in v3, xyz components in v2)
+- Optional: Spherical harmonics data
+- Supports versions 2 and 3 of the SPZ format
+
+The SPZ format provides significant compression compared to .splat while maintaining quality. Files are gzip compressed and use efficient encoding schemes for position, scale, and rotation data.
 
 ## Troubleshooting
 
