@@ -5,7 +5,7 @@ for Gaussian Splatting visualization.
 
 ## Project Overview
 
-This is a QGIS Python plugin for visualizing 3D Gaussian Splats (.ply/.splat files).
+This is a QGIS Python plugin for visualizing 3D Gaussian Splats (.ply/.splat/.spz files).
 QGIS plugins follow PyQGIS conventions and integrate with the QGIS application framework.
 
 ## Build/Development Commands
