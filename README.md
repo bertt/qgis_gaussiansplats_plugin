@@ -139,7 +139,7 @@ Compressed format by Niantic Labs (gzip compressed):
 - Alphas: uint8 per point
 - Colors: RGB (3 × uint8 per point)
 - Scales: Log-encoded uint8 (3 per point)
-- Rotations: Quaternion components (smallest-three encoding in v3, xyz components in v2)
+- Rotations: Quaternion components (smallest-three encoding in v3, xyz as signed bytes with w derived in v2)
 - Optional: Spherical harmonics data
 - Supports versions 2 and 3 of the SPZ format
 
